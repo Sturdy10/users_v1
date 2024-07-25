@@ -2,7 +2,7 @@ package repositories
 
 import (
 	"database/sql"
-	"errors"
+	"fmt"
 	"log"
 	"users_v1/modules/login/models"
 )
@@ -20,44 +20,49 @@ func NewRepositorie(db *sql.DB) IRepositorie {
 }
 
 func (r *repository) LoginR(login models.LoginRequest) error {
-
-	var MbID, storedPassword string
+	var mbID string
+	var storedPassword string
 	var failedAttempts int
 
-	err := r.db.QueryRow("SELECT mb_id FROM member WHERE mb_username = $1", login.MbUsername).Scan(&MbID)
+	err := r.db.QueryRow("SELECT mb_id FROM member WHERE mb_username = $1", login.MbUsername).Scan(&mbID)
 	if err != nil {
-		log.Println("failed to find member:", err)
-		return err
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("user not found")
+		}
+		log.Printf("failed to find member: %v", err)
+		return fmt.Errorf("database error")
 	}
 
-	
-	err = r.db.QueryRow("SELECT mbc_password, failed_attempts FROM member_credential WHERE mbc_mb_id = $1", MbID).Scan(&storedPassword, &failedAttempts)
+	err = r.db.QueryRow("SELECT mbc_password, failed_attempts FROM member_credential WHERE mbc_mb_id = $1", mbID).Scan(&storedPassword, &failedAttempts)
 	if err != nil {
-		log.Println("failed to find member_credential:", err)
-		return err
+		log.Printf("failed to find member_credential: %v", err)
+		return fmt.Errorf("database error")
 	}
-
 
 	if failedAttempts >= 3 {
 		log.Println("account locked due to too many failed attempts")
-		return errors.New("account locked due to too many failed attempts. Please contact admin")
+		return fmt.Errorf("account locked due to too many failed attempts, please contact admin")
 	}
 
-	
 	if storedPassword != login.MbPassword {
 		log.Println("password mismatch")
 
-		_, err := r.db.Exec("UPDATE member_credential SET failed_attempts = failed_attempts + 1 WHERE mbc_mb_id = $1", MbID)
+		failedAttempts++
+		_, err := r.db.Exec("UPDATE member_credential SET failed_attempts = $1 WHERE mbc_mb_id = $2", failedAttempts, mbID)
 		if err != nil {
-			log.Println("failed to update failed attempts:", err)
+			log.Printf("failed to update failed attempts: %v", err)
 		}
 
-		return errors.New("invalid credentials")
+		if failedAttempts >= 3 {
+			return fmt.Errorf("account locked due to too many failed attempts, please contact admin")
+		}
+
+		return fmt.Errorf("invalid credentials, %d attempts remaining", 3-failedAttempts)
 	}
 
-	_, err = r.db.Exec("UPDATE member_credential SET failed_attempts = 0 WHERE mbc_mb_id = $1", MbID)
+	_, err = r.db.Exec("UPDATE member_credential SET failed_attempts = 0 WHERE mbc_mb_id = $1", mbID)
 	if err != nil {
-		log.Println("failed to reset failed attempts:", err)
+		log.Printf("failed to reset failed attempts: %v", err)
 	}
 
 	return nil
