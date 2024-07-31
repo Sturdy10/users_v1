@@ -20,6 +20,8 @@ func NewRepositorie(db *sql.DB) IRepositorie {
 }
 
 func (r *repository) LoginR(login models.LoginRequest) error {
+	const maxFailedAttempts = 5
+
 	var (
 		mbID           string
 		storedPassword string
@@ -41,7 +43,7 @@ func (r *repository) LoginR(login models.LoginRequest) error {
 		return fmt.Errorf("db error")
 	}
 
-	if failedAttempts >= 3 {
+	if failedAttempts >= maxFailedAttempts {
 		log.Println("Account locked")
 		return fmt.Errorf("account locked, contact admin")
 	}
@@ -53,12 +55,7 @@ func (r *repository) LoginR(login models.LoginRequest) error {
 		if err != nil {
 			log.Printf("Error updating attempts: %v", err)
 		}
-
-		if failedAttempts >= 3 {
-			return fmt.Errorf("account locked, contact admin")
-		}
-
-		return fmt.Errorf("invalid credentials, %d attempts left", 3-failedAttempts)
+		return fmt.Errorf("invalid credentials, %d attempts left", maxFailedAttempts - failedAttempts)
 	}
 
 	_, err = r.db.Exec("UPDATE member_credential SET failed_attempts = 0 WHERE mbc_mb_id = $1", mbID)

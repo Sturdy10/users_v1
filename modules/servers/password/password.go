@@ -15,6 +15,6 @@ func Password(router *gin.Engine, db *sql.DB) {
 	s := services.NewService(r)
 	h := handlers.NewHandler(s)
 
-	router.PATCH("/api/newPassword", h.InitPasswordHandler)
+	router.PATCH("/api/newPassword", h.InitPasswordH)
 	router.PATCH("/api/changePassword", h.ChangePasswordHandler)
 }

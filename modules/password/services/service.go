@@ -9,7 +9,7 @@ import (
 )
 
 type IService interface {
-	InitPasswordService(initPassword models.InitPassword) error
+	InitPasswordS(initPassword models.InitPassword) error
 	ChangePasswordService(changePassword models.ChangePassword) error
 }
 
@@ -21,10 +21,10 @@ func NewService(r repositories.IRepositorie) IService {
 	return &service{r: r}
 }
 
-func (s *service) InitPasswordService(initPassword models.InitPassword) error {
-	// ตรวจสอบว่า orgmbEmail เป็นอีเมลที่ถูกต้อง
-	if !strings.Contains(initPassword.OrgmbEmail, "@") || strings.HasPrefix(initPassword.OrgmbEmail, "@") || strings.HasSuffix(initPassword.OrgmbEmail, "@") || strings.Count(initPassword.OrgmbEmail, "@") != 1 {
-		return errors.New("orgmbEmail must be a valid email address (init)")
+func (s *service) InitPasswordS(initPassword models.InitPassword) error {
+	// ตรวจสอบว่า MdUsername เป็นอีเมลที่ถูกต้อง
+	if !strings.Contains(initPassword.MdUsername, "@") || strings.HasPrefix(initPassword.MdUsername, "@") || strings.HasSuffix(initPassword.MdUsername, "@") || strings.Count(initPassword.MdUsername, "@") != 1 {
+		return errors.New("MdUsername must be a valid email address (init)")
 	}
 
 	// ตรวจสอบว่า password มีความยาวอย่างน้อย 8 ตัวอักษร
@@ -33,7 +33,7 @@ func (s *service) InitPasswordService(initPassword models.InitPassword) error {
 	}
 
 	// เรียกใช้ repository ในการตั้งค่ารหัสผ่านใหม่
-	err := s.r.InitPasswordRepository(initPassword)
+	err := s.r.InitPasswordS(initPassword)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -42,9 +42,9 @@ func (s *service) InitPasswordService(initPassword models.InitPassword) error {
 }
 
 func (s *service) ChangePasswordService(changePassword models.ChangePassword) error {
-	// ตรวจสอบว่า orgmbEmail เป็นอีเมลที่ถูกต้อง
-	if !strings.Contains(changePassword.OrgmbEmail, "@") || strings.HasPrefix(changePassword.OrgmbEmail, "@") || strings.HasSuffix(changePassword.OrgmbEmail, "@") || strings.Count(changePassword.OrgmbEmail, "@") != 1 {
-		return errors.New("orgmbEmail must be a valid email address")
+	// ตรวจสอบว่า MdUsername เป็นอีเมลที่ถูกต้อง
+	if !strings.Contains(changePassword.MdUsername, "@") || strings.HasPrefix(changePassword.MdUsername, "@") || strings.HasSuffix(changePassword.MdUsername, "@") || strings.Count(changePassword.MdUsername, "@") != 1 {
+		return errors.New("MdUsername must be a valid email address")
 	}
 	// ตรวจสอบว่า password เก่ามีความยาวอย่างน้อย 8 ตัวอักษร
 	if changePassword.Oldpassword == "" || len(changePassword.Oldpassword) < 8 {

@@ -9,7 +9,7 @@ import (
 )
 
 type IHandler interface {
-	InitPasswordHandler(c *gin.Context)
+	InitPasswordH(c *gin.Context)
 	ChangePasswordHandler(c *gin.Context)
 }
 
@@ -21,14 +21,14 @@ func NewHandler(s services.IService) IHandler {
 	return &handler{s: s}
 }
 
-func (h *handler) InitPasswordHandler(c *gin.Context) {
+func (h *handler) InitPasswordH(c *gin.Context) {
 	var initPassword models.InitPassword
 	if err := c.ShouldBindJSON(&initPassword); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "Error", "message": err.Error()})
 		return
 	}
 
-	err := h.s.InitPasswordService(initPassword)
+	err := h.s.InitPasswordS(initPassword)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": "Error", "message": err.Error()})
 		return

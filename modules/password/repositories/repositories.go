@@ -10,7 +10,7 @@ import (
 )
 
 type IRepositorie interface {
-	InitPasswordRepository(InitPassword models.InitPassword) error
+	InitPasswordS(initPassword models.InitPassword) error
 	ChangePasswordRepository(changePassword models.ChangePassword) error
 }
 
@@ -22,7 +22,7 @@ func NewRepositorie(db *sql.DB) IRepositorie {
 	return &repository{db: db}
 }
 
-func (r *repository) InitPasswordRepository(initPassword models.InitPassword) error {
+func (r *repository) InitPasswordS(initPassword models.InitPassword) error {
 	// เข้ารหัสรหัสผ่านใหม่
 	hashedNewPassword, err := bcrypt.GenerateFromPassword([]byte(initPassword.NewPassword), bcrypt.DefaultCost)
 	if err != nil {
@@ -30,18 +30,18 @@ func (r *repository) InitPasswordRepository(initPassword models.InitPassword) er
 		return err
 	}
 
-	// ค้นหา orgmbID จาก orgmb_email
-	var orgmbID string
-	err = r.db.QueryRow("SELECT orgmb_id FROM organize_member WHERE orgmb_email = $1", initPassword.OrgmbEmail).Scan(&orgmbID)
+	// ค้นหา mbID จาก mb_email
+	var mbID string
+	err = r.db.QueryRow("SELECT mb_id FROM member WHERE mb_email = $1", initPassword.MdUsername).Scan(&mbID)
 	if err != nil {
-		log.Println("failed to find organize_member:", err)
+		log.Println("failed to find member:", err)
 		return err
 	}
 
-	// อัปเดตรหัสผ่านใน organize_member_credential
-	_, err = r.db.Exec("UPDATE organize_member_credential SET orgmbcr_password = $1 WHERE orgmbcr_orgmb_id = $2", hashedNewPassword, orgmbID)
+	// อัปเดตรหัสผ่านใน member_credential
+	_, err = r.db.Exec("UPDATE member_credential SET mbcr_password = $1 WHERE mbcr_mb_id = $2", hashedNewPassword, mbID)
 	if err != nil {
-		log.Println("failed to update organize_member_credential:", err)
+		log.Println("failed to update member_credential:", err)
 		return err
 	}
 
@@ -49,22 +49,22 @@ func (r *repository) InitPasswordRepository(initPassword models.InitPassword) er
 }
 
 func (r *repository) ChangePasswordRepository(changePassword models.ChangePassword) error {
-	var orgmbID string
-	err := r.db.QueryRow("SELECT orgmb_id FROM organize_member WHERE orgmb_email = $1", changePassword.OrgmbEmail).Scan(&orgmbID)
+	var mbID string
+	err := r.db.QueryRow("SELECT mb_id FROM member WHERE mb_email = $1", changePassword.MdUsername).Scan(&mbID)
 	if err != nil {
-		log.Println("failed to find organize_member:", err)
+		log.Println("failed to find member:", err)
 		return errors.New("failed to find email address")
 	}
 
-	var orgmbcrPassword string
-	err = r.db.QueryRow("SELECT orgmbcr_password FROM organize_member_credential WHERE orgmbcr_orgmb_id = $1", orgmbID).Scan(&orgmbcrPassword)
+	var mbcrPassword string
+	err = r.db.QueryRow("SELECT mbcr_password FROM member_credential WHERE mbcr_mb_id = $1", mbID).Scan(&mbcrPassword)
 	if err != nil {
-		log.Println("failed to update organize_member_credential:", err)
+		log.Println("failed to update member_credential:", err)
 		return err
 	}
 
 	// เปรียบเทียบรหัสผ่านเก่า
-	err = bcrypt.CompareHashAndPassword([]byte(orgmbcrPassword), []byte(changePassword.Oldpassword))
+	err = bcrypt.CompareHashAndPassword([]byte(mbcrPassword), []byte(changePassword.Oldpassword))
 	if err != nil {
 		log.Println("the password is incorrect:", err)
 		return errors.New("the password is incorrect")
@@ -77,10 +77,10 @@ func (r *repository) ChangePasswordRepository(changePassword models.ChangePasswo
 		return err
 	}
 
-	// อัปเดตรหัสผ่านใน organize_member_credential
-	_, err = r.db.Exec("UPDATE organize_member_credential SET orgmbcr_password = $1 WHERE orgmbcr_orgmb_id = $2", hashedNewPassword, orgmbID)
+	// อัปเดตรหัสผ่านใน member_credential
+	_, err = r.db.Exec("UPDATE member_credential SET mbcr_password = $1 WHERE mbcr_mb_id = $2", hashedNewPassword, mbID)
 	if err != nil {
-		log.Println("failed to update organize_member_credential:", err)
+		log.Println("failed to update member_credential:", err)
 		return err
 	}
 

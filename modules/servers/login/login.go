@@ -15,5 +15,5 @@ func Login(router *gin.Engine, db *sql.DB) {
 	s := services.NewService(r)
 	h := handlers.NewHandler(s)
 
-	router.GET("/api/login", h.LoginH)
+	router.POST("/api/login", h.LoginH)
 }
